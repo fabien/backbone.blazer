@@ -20,19 +20,54 @@ _.extend(Backbone.Blazer.Route.prototype, Backbone.Events, {
         return {
             redirectFragment: fragment
         };
+    },
+    prependFilter: function(before, after) {
+        this.filters = this.filters || [];
+        var filter = Backbone.Blazer.Router.createFilter(before, after);
+        if (!_.isEmpty(filter)) this.filters.unshift(filter);
+    },
+    appendFilter: function(before, after) {
+        this.filters = this.filters || [];
+        var filter = Backbone.Blazer.Router.createFilter(before, after);
+        if (!_.isEmpty(filter)) this.filters.push(filter);
     }
 });
 
 Backbone.Blazer.Router = Backbone.Router.extend({
-    route: function(route, config) {
+    constructor: function() {
+        Backbone.Router.apply(this, arguments);
+        this.namedRoutes = {};
+        this.routeHandlers = {};
+    },
+    
+    route: function(routeName, route, config) {
+        if (arguments.length < 3) {
+            config = route, route = routeName;
+            routeName = _.isString(route) ? route.replace(/\/:?/g, '-').toLowerCase() : null;
+        }
+
+        if (!_.isEmpty(routeName)) {
+            if (this.namedRoutes[routeName]) {
+                console.warn('Route `%s` already assigned: %s', routeName, this.namedRoutes[routeName]);
+            }
+            if (_.isString(route)) this.namedRoutes[routeName] = route;
+            if (config instanceof Backbone.Blazer.Route) this.routeHandlers[routeName] = config;
+        }
+        
         if (!_.isRegExp(route)) {
             route = this._routeToRegExp(route);
         }
 
         var routeData = {
-            handler: config
+            handler: config,
+            router: this
         };
-
+        
+        if (routeName && this.namedRoutes[routeName]) {
+            routeData.name = routeName;
+            routeData.url = this.get.bind(this, routeName);
+        }
+        
         var router = this;
         Backbone.history.route(route, function(fragment) {
             routeData.params = router._extractParameters(route, fragment);
@@ -40,11 +75,30 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         });
         return this;
     },
+    
+    navigateTo: function(routeName, params, options) {
+        var url = this.get(routeName, params);
+        return this.navigate(url, options);
+    },
+    
+    get: function(routeName, params) {
+        var route = this.namedRoutes[routeName];
+        if (_.isString(route) && arguments.length > 1) {
+            route = this.url(route, params);
+        }
+        return route;
+    },
+    
+    handler: function(routeName) {
+        return this.routeHandlers[routeName];
+    },
 
     handleRoute: function(routeData) {
         var handler = routeData.handler;
 
-        this.currentRoute = handler;
+        this.currentHandler = handler;
+        this.currentRoute = _.isString(routeData.name) ? routeData.name : null;
+        this.currentUrl = _.isFunction(routeData.url) ? routeData.url(routeData.params || {}) : null;
 
         if (_.isString(handler)) {
             if (_.isFunction(this[handler])) {
@@ -59,26 +113,45 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         }
     },
 
+    url: function(path, params) {
+        if (_.isObject(params) && !_.isArray(params)) {
+            params = params;
+        } else if (arguments.length > 1) {
+            params = _.flatten(_.rest(arguments));
+        }
+        var index = 0;
+        return path.replace(/:([A-Za-z_]+)/g, function (segment, key) {
+            var match = params[key] || params[index++];
+            return _.isUndefined(match) ? '' : match;
+        });
+    },
+    
+    matchesUrl: function(url, params) {
+        if (arguments.length > 1) url = this.url(url, params);
+        return _.isString(this.currentUrl) && url.indexOf(this.currentUrl) === 0;
+    },
+
     _handleBlazerRoute: function(route, routeData) {
         var router = this;
 
-        route.trigger('before:execute', routeData);
-        router.trigger('before:execute', routeData);
+        route.trigger('before:execute', routeData, route);
+        router.trigger('before:execute', routeData, route);
 
         this._runBeforeFilters(router, route, routeData).then(function() {
             return router._runHandler(route.prepare, router, route, routeData);
         }).then(function() {
-            if (router.currentRoute !== route) {
-                return;
+            if (router.currentHandler !== route) {
+                return; // when redirected
             }
 
             router._runHandler(route.execute, router, route, routeData);
-            route.trigger('after:execute', routeData);
-            router.trigger('after:execute', routeData);
+
+            route.trigger('after:execute', routeData, route);
+            router.trigger('after:execute', routeData, route);
 
             router._runAfterFilters(router, route, routeData);
         }).fail(function() {
-            if (router.currentRoute !== route) {
+            if (router.currentHandler !== route) {
                 return;
             }
 
@@ -141,5 +214,20 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         }
 
         return $.when(result);
+    }
+}, {
+    filters: {},
+    
+    registerFilter: function(filterName, fn) {
+        if (_.isFunction(fn)) this.filters[filterName] = fn;
+    },
+    
+    createFilter: function(before, after) {
+        var filter = {};
+        if (_.isString(before)) before = this.filters[before];
+        if (_.isString(after)) before = this.filters[after];
+        if (_.isFunction(before)) filter.beforeRoute = before;
+        if (_.isFunction(after)) filter.afterRoute = after;
+        return filter;
     }
 });

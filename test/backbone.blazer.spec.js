@@ -1,4 +1,6 @@
 describe('Backbone.Blazer.Router', function() {
+    
+    var loadedUser;
 
     var TestRoute = Backbone.Blazer.Route.extend({
         execute: function() {}
@@ -12,6 +14,11 @@ describe('Backbone.Blazer.Router', function() {
 
     beforeEach(function() {
         this.sinon = sinon.sandbox.create();
+        loadedUser = false;
+
+        TestRouter.registerFilter('loadUser', function(ctx) {
+            loadedUser = true;
+        });
 
         this.testRoute = new TestRoute();
         this.redirectRoute = new RedirectRoute();
@@ -215,17 +222,28 @@ describe('Backbone.Blazer.Router', function() {
     it('should run before filters in order until a redirect happens', function() {
         var result = [];
 
-        this.testRoute.filters = [{
-            beforeRoute: function() { return result.push(1); }
-        }, {
-            beforeRoute: function() { return this.redirect('redirect'); }
-        }, {
-            beforeRoute: function() { return result.push(2); }
-        }];
+        this.testRoute.appendFilter(function() { return this.redirect('redirect'); });
+        this.testRoute.appendFilter(function() { return result.push(2); });
+        this.testRoute.prependFilter(function() { return result.push(1); });
+        
+        expect(this.testRoute.filters).to.have.length(3);
 
         this.router.navigate('route', { trigger: true });
 
         expect(result).to.eql([1]);
+    });
+
+    it('should use filters that have been registered on the router', function() {
+        this.sinon.spy(this.testRoute, 'execute');
+        
+        this.testRoute.prependFilter('loadUser');
+        
+        expect(this.testRoute.filters).to.have.length(1);
+        
+        this.router.navigate('route', { trigger: true });
+        
+        expect(this.testRoute.execute).to.have.been.called;
+        expect(loadedUser).to.be.true;
     });
 
     it('should run after filters in order until a redirect happens', function() {
@@ -274,4 +292,84 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.redirectRoute.execute).to.have.been.called;
     });
 
+    it('should pass the router instance with ctx', function() {
+        var result;
+        this.testRoute.appendFilter(function(ctx) { return result = ctx.router; });
+        this.router.navigate('route', { trigger: true });
+        expect(result).to.equal(this.router);
+    });
+
+    it('should build urls for route paths', function() {
+        expect(this.router.url('project/:id/details', { id: 3 })).to.equal('project/3/details');
+        expect(this.router.url('project/:id/details', 3)).to.equal('project/3/details');
+        expect(this.router.url('project/:id/details/:fk', { id: 3, fk: 5 })).to.equal('project/3/details/5');
+        expect(this.router.url('project/:id/details', 3, 5)).to.equal('project/3/details');
+    });
+
+    it('should use named routes and route handlers', function() {
+        this.sinon.spy(this.testRoute, 'execute');
+        var result, urls = [];
+        
+        this.router.on('after:execute', function(ctx, router) {
+            urls.push(this.currentUrl);
+        });
+        
+        this.testRoute.appendFilter(function(ctx) { return result = ctx.url(ctx.params); });
+        
+        this.router.route('show', 'show/:id', this.testRoute);
+        this.router.route('user.show', 'user/:id', this.testRoute);
+        this.router.route('show/all', this.testRoute); // implicit name
+        
+        // Test setup
+        
+        expect(this.router.get('show')).to.equal('show/:id');
+        expect(this.router.get('show', { id: '1234' })).to.equal('show/1234');
+        expect(this.router.get('show', '1234')).to.equal('show/1234');
+        
+        expect(this.router.get('show-all')).to.equal('show/all');
+        
+        expect(this.router.handler('show')).to.equal(this.testRoute);
+        expect(this.router.handler('user.show')).to.equal(this.testRoute);
+        expect(this.router.handler('show-all')).to.equal(this.testRoute);
+        
+        // Navigate (1)
+        
+        this.router.navigate('show/1234', { trigger: true });
+        
+        expect(result).to.equal('show/1234');
+        
+        expect(this.testRoute.execute).to.have.been.calledOnce;
+        
+        expect(this.router.currentRoute).to.equal('show');
+        expect(this.router.currentUrl).to.equal('show/1234');
+        
+        expect(this.router.matchesUrl('show/1234/details')).to.be.true;
+        expect(this.router.matchesUrl('show/:id', 1234)).to.be.true;
+        expect(this.router.matchesUrl('show/5678')).to.be.false;
+        
+        // Navigate (2)
+        
+        this.router.navigate('show/all', { trigger: true });
+        
+        expect(result).to.equal('show/all');
+        
+        expect(this.router.currentRoute).to.equal('show-all');
+        expect(this.router.currentUrl).to.equal('show/all');
+        
+        expect(this.router.matchesUrl('show/all/example')).to.be.true;
+        expect(this.router.matchesUrl('show/all')).to.be.true;
+        expect(this.router.matchesUrl('show/other')).to.be.false;
+        
+        // Navigate (3)
+        
+        this.router.navigateTo('user.show', { id: 5678 }, { trigger: true });
+        
+        expect(result).to.equal('user/5678');
+        
+        expect(this.router.currentRoute).to.equal('user.show');
+        expect(this.router.currentUrl).to.equal('user/5678');
+        
+        expect(urls).to.eql(['show/1234', 'show/all', 'user/5678']);
+    });
+    
 });
