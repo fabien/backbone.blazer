@@ -117,18 +117,17 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         if (_.isString(handler)) {
             if (_.isFunction(this[handler])) {
                 this[handler].apply(this, routeData.params);
-                handledRoute();
+                done();
             }
         } else if (handler instanceof Backbone.Blazer.Route) {
-            this.once('after:execute', handledRoute);
-            this._handleBlazerRoute(handler, routeData);
+            this._handleBlazerRoute(handler, routeData, done);
         } else if (_.isFunction(handler)) {
             handler.apply(this, routeData);
         } else {
             throw new Error('Incorrectly configured route');
         }
         
-        function handledRoute() {
+        function done() {
             var name = router.current.route;
             var args = routeData.params || [];
             router.trigger.apply(router, ['route:' + name].concat(args));
@@ -155,7 +154,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         return _.isString(this.current.url) && url.indexOf(this.current.url) === 0;
     },
 
-    _handleBlazerRoute: function(route, routeData) {
+    _handleBlazerRoute: function(route, routeData, callback) {
         var router = this;
 
         route.trigger('before:execute', routeData, route);
@@ -169,6 +168,8 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             }
 
             router._runHandler(route.execute, router, route, routeData);
+
+            if (_.isFunction(callback)) callback(routeData, route);
 
             route.trigger('after:execute', routeData, route);
             router.trigger('after:execute', routeData, route);
