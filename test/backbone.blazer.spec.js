@@ -311,7 +311,7 @@ describe('Backbone.Blazer.Router', function() {
         var parameters, url, urls = [];
         
         this.router.on('after:execute', function(ctx, router) {
-            urls.push(this.currentUrl);
+            urls.push(this.current.url);
         });
         
         this.testRoute.appendFilter(function(ctx) {
@@ -344,8 +344,10 @@ describe('Backbone.Blazer.Router', function() {
         
         expect(this.testRoute.execute).to.have.been.calledOnce;
         
-        expect(this.router.currentRoute).to.equal('show');
-        expect(this.router.currentUrl).to.equal('show/1234');
+        expect(this.router.previous).to.not.exist;
+        
+        expect(this.router.current.route).to.equal('show');
+        expect(this.router.current.url).to.equal('show/1234');
         
         expect(this.router.matchesUrl('show/1234/details')).to.be.true;
         expect(this.router.matchesUrl('show/:id', 1234)).to.be.true;
@@ -358,8 +360,10 @@ describe('Backbone.Blazer.Router', function() {
         expect(parameters).to.eql({});
         expect(url).to.equal('show/all');
         
-        expect(this.router.currentRoute).to.equal('show-all');
-        expect(this.router.currentUrl).to.equal('show/all');
+        expect(this.router.previous.route).to.equal('show');
+        
+        expect(this.router.current.route).to.equal('show-all');
+        expect(this.router.current.url).to.equal('show/all');
         
         expect(this.router.matchesUrl('show/all/example')).to.be.true;
         expect(this.router.matchesUrl('show/all')).to.be.true;
@@ -372,8 +376,10 @@ describe('Backbone.Blazer.Router', function() {
         expect(parameters).to.eql({ id: '5678' });
         expect(url).to.equal('user/5678');
         
-        expect(this.router.currentRoute).to.equal('user.show');
-        expect(this.router.currentUrl).to.equal('user/5678');
+        expect(this.router.previous.route).to.equal('show-all');
+        
+        expect(this.router.current.route).to.equal('user.show');
+        expect(this.router.current.url).to.equal('user/5678');
         
         expect(urls).to.eql(['show/1234', 'show/all', 'user/5678']);
     });

@@ -104,22 +104,37 @@ Backbone.Blazer.Router = Backbone.Router.extend({
 
     handleRoute: function(routeData) {
         var handler = routeData.handler;
-
-        this.currentHandler = handler;
-        this.currentRoute = _.isString(routeData.name) ? routeData.name : null;
-        this.currentUrl = _.isFunction(routeData.url) ? routeData.url(routeData.params || {}) : null;
+        var router = this;
+        
+        this.previous = this.current ? this.current : null;
+        
+        this.current = {};
+        this.current.handler = handler;
+        this.current.route = _.isString(routeData.name) ? routeData.name : '';
+        this.current.url = _.isFunction(routeData.url) ? routeData.url(routeData.params || {}) : '';
+        this.current.parameters = routeData.parameters || {};
         
         if (_.isString(handler)) {
             if (_.isFunction(this[handler])) {
                 this[handler].apply(this, routeData.params);
+                handledRoute();
             }
         } else if (handler instanceof Backbone.Blazer.Route) {
+            this.once('after:execute', handledRoute);
             this._handleBlazerRoute(handler, routeData);
         } else if (_.isFunction(handler)) {
             handler.apply(this, routeData);
         } else {
             throw new Error('Incorrectly configured route');
         }
+        
+        function handledRoute() {
+            var name = router.current.route;
+            var args = routeData.params || [];
+            router.trigger.apply(router, ['route:' + name].concat(args));
+            router.trigger('route', name, args);
+            Backbone.history.trigger('route', router, name, args);
+        };
     },
 
     url: function(path, params) {
@@ -137,7 +152,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
     
     matchesUrl: function(url, params) {
         if (arguments.length > 1) url = this.url(url, params);
-        return _.isString(this.currentUrl) && url.indexOf(this.currentUrl) === 0;
+        return _.isString(this.current.url) && url.indexOf(this.current.url) === 0;
     },
 
     _handleBlazerRoute: function(route, routeData) {
@@ -149,7 +164,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         this._runBeforeFilters(router, route, routeData).then(function() {
             return router._runHandler(route.prepare, router, route, routeData);
         }).then(function() {
-            if (router.currentHandler !== route) {
+            if (router.current && router.current.handler !== route) {
                 return; // when redirected
             }
 
@@ -160,8 +175,8 @@ Backbone.Blazer.Router = Backbone.Router.extend({
 
             router._runAfterFilters(router, route, routeData);
         }).fail(function() {
-            if (router.currentHandler !== route) {
-                return;
+            if (router.current && router.current.handler !== route) {
+                return; // when redirected
             }
 
             var args = Array.prototype.slice.call(arguments);
