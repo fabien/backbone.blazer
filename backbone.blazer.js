@@ -75,7 +75,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             routeData.parameters = {};
             if (_.isString(routeData.route) && !_.isEmpty(routeData.params)) {
                 var args = [];
-                routeData.route.replace(/:([A-Za-z_]+)/g, function (segment, key) {
+                routeData.route.replace(/\/:(\w+)/g, function (segment, key) {
                     args.push(key);
                 });
                 routeData.parameters = _.object(args, routeData.params.slice(0, args.length));
@@ -129,9 +129,9 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             params = _.flatten(_.rest(arguments));
         }
         var index = 0;
-        return path.replace(/:([A-Za-z_]+)/g, function (segment, key) {
+        return path.replace(/\/:(\w+)/g, function (segment, key) {
             var match = params[key] || params[index++];
-            return _.isUndefined(match) ? '' : match;
+            return _.isUndefined(match) ? '' : '/' + match;
         });
     },
     
