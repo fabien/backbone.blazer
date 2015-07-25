@@ -133,7 +133,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             router.trigger.apply(router, ['route:' + name].concat(args));
             router.trigger('route', name, args);
             Backbone.history.trigger('route', router, name, args);
-        };
+        }
     },
 
     url: function(path, params) {
