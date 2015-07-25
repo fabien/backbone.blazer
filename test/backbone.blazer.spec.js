@@ -308,13 +308,16 @@ describe('Backbone.Blazer.Router', function() {
 
     it('should use named routes and route handlers', function() {
         this.sinon.spy(this.testRoute, 'execute');
-        var result, urls = [];
+        var parameters, url, urls = [];
         
         this.router.on('after:execute', function(ctx, router) {
             urls.push(this.currentUrl);
         });
         
-        this.testRoute.appendFilter(function(ctx) { return result = ctx.url(ctx.params); });
+        this.testRoute.appendFilter(function(ctx) {
+            parameters = ctx.parameters;
+            url = ctx.url(ctx.params);
+        });
         
         this.router.route('show', 'show/:id', this.testRoute);
         this.router.route('user.show', 'user/:id', this.testRoute);
@@ -336,7 +339,8 @@ describe('Backbone.Blazer.Router', function() {
         
         this.router.navigate('show/1234', { trigger: true });
         
-        expect(result).to.equal('show/1234');
+        expect(parameters).to.eql({ id: '1234' });
+        expect(url).to.equal('show/1234');
         
         expect(this.testRoute.execute).to.have.been.calledOnce;
         
@@ -351,7 +355,8 @@ describe('Backbone.Blazer.Router', function() {
         
         this.router.navigate('show/all', { trigger: true });
         
-        expect(result).to.equal('show/all');
+        expect(parameters).to.eql({});
+        expect(url).to.equal('show/all');
         
         expect(this.router.currentRoute).to.equal('show-all');
         expect(this.router.currentUrl).to.equal('show/all');
@@ -364,7 +369,8 @@ describe('Backbone.Blazer.Router', function() {
         
         this.router.navigateTo('user.show', { id: 5678 }, { trigger: true });
         
-        expect(result).to.equal('user/5678');
+        expect(parameters).to.eql({ id: '5678' });
+        expect(url).to.equal('user/5678');
         
         expect(this.router.currentRoute).to.equal('user.show');
         expect(this.router.currentUrl).to.equal('user/5678');

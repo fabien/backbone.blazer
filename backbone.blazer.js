@@ -64,6 +64,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         };
         
         if (routeName && this.namedRoutes[routeName]) {
+            routeData.route = this.namedRoutes[routeName];
             routeData.name = routeName;
             routeData.url = this.get.bind(this, routeName);
         }
@@ -71,6 +72,14 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         var router = this;
         Backbone.history.route(route, function(fragment) {
             routeData.params = router._extractParameters(route, fragment);
+            routeData.parameters = {};
+            if (_.isString(routeData.route) && !_.isEmpty(routeData.params)) {
+                var args = [];
+                routeData.route.replace(/:([A-Za-z_]+)/g, function (segment, key) {
+                    args.push(key);
+                });
+                routeData.parameters = _.object(args, routeData.params.slice(0, args.length));
+            }
             router.handleRoute(routeData);
         });
         return this;
@@ -99,7 +108,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         this.currentHandler = handler;
         this.currentRoute = _.isString(routeData.name) ? routeData.name : null;
         this.currentUrl = _.isFunction(routeData.url) ? routeData.url(routeData.params || {}) : null;
-
+        
         if (_.isString(handler)) {
             if (_.isFunction(this[handler])) {
                 this[handler].apply(this, routeData.params);
