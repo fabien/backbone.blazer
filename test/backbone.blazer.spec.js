@@ -346,7 +346,8 @@ describe('Backbone.Blazer.Router', function() {
         
         expect(this.router.previous).to.not.exist;
         
-        expect(this.router.current.route).to.equal('show');
+        expect(this.router.current.name).to.equal('show');
+        expect(this.router.current.route).to.equal('show/:id');
         expect(this.router.current.url).to.equal('show/1234');
         
         expect(this.router.matchesUrl('show/1234/details')).to.be.true;
@@ -360,9 +361,10 @@ describe('Backbone.Blazer.Router', function() {
         expect(parameters).to.eql({});
         expect(url).to.equal('show/all');
         
-        expect(this.router.previous.route).to.equal('show');
+        expect(this.router.previous.name).to.equal('show');
         
-        expect(this.router.current.route).to.equal('show-all');
+        expect(this.router.current.name).to.equal('show-all');
+        expect(this.router.current.route).to.equal('show/all');
         expect(this.router.current.url).to.equal('show/all');
         
         expect(this.router.matchesUrl('show/all/example')).to.be.true;
@@ -376,12 +378,55 @@ describe('Backbone.Blazer.Router', function() {
         expect(parameters).to.eql({ id: '5678' });
         expect(url).to.equal('user/5678');
         
-        expect(this.router.previous.route).to.equal('show-all');
+        expect(this.router.previous.name).to.equal('show-all');
         
-        expect(this.router.current.route).to.equal('user.show');
+        expect(this.router.current.name).to.equal('user.show');
+        expect(this.router.current.route).to.equal('user/:id');
         expect(this.router.current.url).to.equal('user/5678');
         
         expect(urls).to.eql(['show/1234', 'show/all', 'user/5678']);
+    });
+    
+    it('should use named routes for tree-like behavior', function() {
+        this.router.route('users', 'users', this.testRoute);
+        this.router.route('users.show', 'users/:id', this.testRoute);
+        this.router.route('users.active', 'users/active', this.testRoute);
+        this.router.route('users.show.documents', 'users/:id/documents', this.testRoute);
+        this.router.route('users.show.documents.detail', 'users/:id/documents/:documentId', this.testRoute);
+        
+        var params = { id: 1234, documentId: 'xyz' };
+        
+        var ancestors = ['users', 'users/1234'];
+        var children = ['users/1234/documents', 'users/1234/documents/xyz'];
+        
+        this.router.navigateTo('users.show', params, { trigger: true });
+        
+        var nodes = this.router.ancestors();
+        expect(_.pluck(nodes, 'url')).to.eql(ancestors);
+        
+        var nodes = this.router.nodes(params);
+        expect(_.pluck(nodes, 'url')).to.eql(children);
+        
+        expect(this.router.siblings()).to.eql([
+            { name: 'users.show', route: 'users/:id', url: 'users/1234', active: true },
+            { name: 'users.active', route: 'users/active', url: 'users/active', active: false }
+        ]);
+        
+        var ancestors = ['users', 'users/1234', 'users/1234/documents', 'users/1234/documents/xyz'];
+        
+        this.router.navigateTo('users.show.documents.detail', params, { trigger: true });
+        
+        var nodes = this.router.ancestors();
+        expect(_.pluck(nodes, 'url')).to.eql(ancestors);
+        
+        var nodes = this.router.nodes(params);
+        expect(_.pluck(nodes, 'url')).to.eql([]);
+        
+        expect(this.router.siblings()).to.eql([{
+            name: 'users.show.documents.detail', 
+            route: 'users/:id/documents/:documentId', 
+            url: 'users/1234/documents/xyz', active: true
+        }]);
     });
     
 });
