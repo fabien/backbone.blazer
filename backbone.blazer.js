@@ -43,7 +43,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
     route: function(routeName, route, config) {
         if (arguments.length < 3) {
             config = route, route = routeName;
-            routeName = _.isString(route) ? route.replace(/\/:?/g, '-').toLowerCase() : null;
+            routeName = _.isString(route) ? route.replace(/\/[:\*]?/g, '-').toLowerCase() : null;
         }
 
         if (!_.isEmpty(routeName)) {
@@ -75,7 +75,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             routeData.parameters = {};
             if (_.isString(routeData.route) && !_.isEmpty(routeData.params)) {
                 var args = [];
-                routeData.route.replace(/\/:(\w+)/g, function (segment, key) {
+                routeData.route.replace(/\/[:\*](\w+)/g, function (segment, key) {
                     args.push(key);
                 });
                 routeData.parameters = _.object(args, routeData.params.slice(0, args.length));
@@ -142,9 +142,12 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             params = params;
         } else if (arguments.length > 1) {
             params = _.flatten(_.rest(arguments));
+        } else {
+            params = {};
         }
         var index = 0;
-        return path.replace(/\/:(\w+)/g, function (segment, key) {
+        path = (path + '').replace(/[\(\)]/g, '');
+        return path.replace(/\/[:\*](\w+)/g, function (segment, key) {
             var match = params[key] || params[index++];
             return _.isUndefined(match) ? '' : '/' + match;
         });

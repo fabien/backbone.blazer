@@ -349,6 +349,7 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.current.name).to.equal('show');
         expect(this.router.current.route).to.equal('show/:id');
         expect(this.router.current.url).to.equal('show/1234');
+        expect(this.router.current.parameters).to.eql({ id: '1234' });
         
         expect(this.router.matchesUrl('show/1234/details')).to.be.true;
         expect(this.router.matchesUrl('show/:id', 1234)).to.be.true;
@@ -366,6 +367,7 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.current.name).to.equal('show-all');
         expect(this.router.current.route).to.equal('show/all');
         expect(this.router.current.url).to.equal('show/all');
+        expect(this.router.current.parameters).to.eql({});
         
         expect(this.router.matchesUrl('show/all/example')).to.be.true;
         expect(this.router.matchesUrl('show/all')).to.be.true;
@@ -383,6 +385,7 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.current.name).to.equal('user.show');
         expect(this.router.current.route).to.equal('user/:id');
         expect(this.router.current.url).to.equal('user/5678');
+        expect(this.router.current.parameters).to.eql({ id: '5678' });
         
         expect(urls).to.eql(['show/1234', 'show/all', 'user/5678']);
     });
@@ -427,6 +430,28 @@ describe('Backbone.Blazer.Router', function() {
             route: 'users/:id/documents/:documentId', 
             url: 'users/1234/documents/xyz', active: true
         }]);
+    });
+    
+    it('should generate urls from routes', function() {
+        expect(this.router.url('users')).to.equal('users');
+        expect(this.router.url('users/:id')).to.equal('users');
+        expect(this.router.url('users/:id', 1234)).to.equal('users/1234');
+        expect(this.router.url('users/:id', { id: 1234 })).to.equal('users/1234');
+        expect(this.router.url('users(/:id)')).to.equal('users');
+        expect(this.router.url('users(/:id)', { id: 1234 })).to.equal('users/1234');
+        expect(this.router.url('users/*path')).to.equal('users');
+        expect(this.router.url('users/*path', { path: 'foo/bar' })).to.equal('users/foo/bar');
+    });
+    
+    it('should handle splat routes', function() {
+        this.router.route('users', 'users/*path', this.testRoute);
+        
+        this.router.navigateTo('users', { path: 'foo/bar/baz' }, { trigger: true });
+        
+        expect(this.router.current.name).to.equal('users');
+        expect(this.router.current.route).to.equal('users/*path');
+        expect(this.router.current.url).to.equal('users/foo/bar/baz');
+        expect(this.router.current.parameters).to.eql({ path: 'foo/bar/baz' });
     });
     
 });
