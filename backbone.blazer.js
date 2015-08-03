@@ -159,7 +159,9 @@ Backbone.Blazer.Router = Backbone.Router.extend({
     
     matchesUrl: function(url, params) {
         if (arguments.length > 1) url = this.url(url, params);
-        if (this.current.url === '' && this.current.url === url) {
+        if (!this.current) {
+            return url === '';
+        } else if (this.current.url === '' && this.current.url === url) {
             return true;
         } else if (this.current.url === '') {
             return false;
