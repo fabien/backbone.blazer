@@ -308,7 +308,7 @@ describe('Backbone.Blazer.Router', function() {
 
     it('should use named routes and route handlers', function() {
         this.sinon.spy(this.testRoute, 'execute');
-        var parameters, url, urls = [];
+        var parameters, url, altUrl, urls = [];
         
         this.router.on('after:execute', function(ctx, router) {
             urls.push(this.current.url);
@@ -316,7 +316,8 @@ describe('Backbone.Blazer.Router', function() {
         
         this.testRoute.appendFilter(function(ctx) {
             parameters = ctx.parameters;
-            url = ctx.url(ctx.params);
+            url = ctx.url();
+            altUrl = ctx.url({ id: 8888 });
         });
         
         this.router.route('show', 'show/:id', this.testRoute);
@@ -341,6 +342,7 @@ describe('Backbone.Blazer.Router', function() {
         
         expect(parameters).to.eql({ id: '1234' });
         expect(url).to.equal('show/1234');
+        expect(altUrl).to.equal('show/8888');
         
         expect(this.testRoute.execute).to.have.been.calledOnce;
         

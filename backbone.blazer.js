@@ -66,7 +66,11 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         if (routeName && _.has(this.namedRoutes, routeName)) {
             routeData.route = this.namedRoutes[routeName];
             routeData.name = routeName;
-            routeData.url = this.get.bind(this, routeName);
+            routeData.url = function(params) {
+                var defaults = _.extend({}, routeData.parameters);
+                params = _.isArray(params) ? params : (_.isObject(params) ? _.extend(defaults, params) : defaults);
+                return routeData.router.get(routeName, params);
+            };
         }
         
         var router = this;
