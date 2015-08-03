@@ -59,7 +59,7 @@
         route: function(routeName, route, config) {
             if (arguments.length < 3) {
                 config = route, route = routeName;
-                routeName = _.isString(route) ? route.replace(/\/:?/g, '-').toLowerCase() : null;
+                routeName = _.isString(route) ? route.replace(/\/[:\*]?/g, '-').toLowerCase() : null;
             }
     
             if (!_.isEmpty(routeName)) {
@@ -91,7 +91,7 @@
                 routeData.parameters = {};
                 if (_.isString(routeData.route) && !_.isEmpty(routeData.params)) {
                     var args = [];
-                    routeData.route.replace(/\/:(\w+)/g, function (segment, key) {
+                    routeData.route.replace(/\/[:\*](\w+)/g, function (segment, key) {
                         args.push(key);
                     });
                     routeData.parameters = _.object(args, routeData.params.slice(0, args.length));
@@ -126,8 +126,9 @@
             
             this.current = {};
             this.current.handler = handler;
-            this.current.route = _.isString(routeData.name) ? routeData.name : '';
-            this.current.url = _.isFunction(routeData.url) ? routeData.url(routeData.params || {}) : '';
+            this.current.name = _.isString(routeData.name) ? routeData.name : '';
+            this.current.route = routeData.route || '';
+            this.current.url = _.isFunction(routeData.url) ? routeData.url(routeData.params || []) : '';
             this.current.parameters = routeData.parameters || {};
             
             if (_.isString(handler)) {
@@ -157,9 +158,12 @@
                 params = params;
             } else if (arguments.length > 1) {
                 params = _.flatten(_.rest(arguments));
+            } else {
+                params = {};
             }
             var index = 0;
-            return path.replace(/\/:(\w+)/g, function (segment, key) {
+            path = (path + '').replace(/[\(\)]/g, '');
+            return path.replace(/\/[:\*](\w+)/g, function (segment, key) {
                 var match = params[key] || params[index++];
                 return _.isUndefined(match) ? '' : '/' + match;
             });
@@ -168,6 +172,75 @@
         matchesUrl: function(url, params) {
             if (arguments.length > 1) url = this.url(url, params);
             return _.isString(this.current.url) && url.indexOf(this.current.url) === 0;
+        },
+        
+        ancestors: function(routeName, params) {
+            if (arguments.length === 0) {
+                routeName = (this.current && this.current.name) || '';
+                params = (this.current && this.current.parameters) || {};
+            } else if (_.isObject(routeName)) {
+                params = _.extend({}, routeName);
+                routeName = (this.current && this.current.name) || '';
+            }
+            var nodes = [];
+            var segments = routeName.split('.');
+            while (segments.length) {
+                var name = segments.join('.');
+                var route = this.get(name);
+                if (route) {
+                    var url = this.url(route, params);
+                    nodes.push({ name: name, route: route, url: url });
+                }
+                segments.pop();
+            }
+            return nodes.reverse();
+        },
+    
+        nodes: function(routeName, params) {
+            if (arguments.length === 0) {
+                routeName = (this.current && this.current.name) || '';
+                params = (this.current && this.current.parameters) || {};
+            } else if (_.isObject(routeName)) {
+                params = _.extend({}, routeName);
+                routeName = (this.current && this.current.name) || '';
+            }
+            var nodes = [];
+            var match = routeName + '.';
+            _.each(_.keys(this.routeHandlers), function(name) {
+                if (name.indexOf(match) === 0) {
+                    var route = this.get(name);
+                    if (route) {
+                        var url = this.url(route, params);
+                        nodes.push({ name: name, route: route, url: url });
+                    }
+                } 
+            }.bind(this));
+            return nodes;
+        },
+    
+        siblings: function(routeName, params) {
+            if (arguments.length === 0) {
+                routeName = (this.current && this.current.name) || '';
+                params = (this.current && this.current.parameters) || {};
+            } else if (_.isObject(routeName)) {
+                params = _.extend({}, routeName);
+                routeName = (this.current && this.current.name) || '';
+            }
+            var nodes = [];
+            var segments = routeName.split('.').slice(0, -1);
+            var match = segments.join('.') + '.';
+            var nomatch = routeName + '.';
+            _.each(_.keys(this.routeHandlers), function(name) {
+                if (name.indexOf(match) === 0 && name.indexOf(nomatch) === -1) {
+                    var route = this.get(name);
+                    if (route) {
+                        var url = this.url(route, params);
+                        var active = name === routeName;
+                        nodes.push({ name: name, route: route, url: url, active: active });
+                    }
+                } 
+            }.bind(this));
+            return nodes;
         },
     
         _handleBlazerRoute: function(route, routeData, callback) {
