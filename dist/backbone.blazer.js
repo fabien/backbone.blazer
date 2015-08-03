@@ -175,7 +175,18 @@
         
         matchesUrl: function(url, params) {
             if (arguments.length > 1) url = this.url(url, params);
-            return _.isString(this.current.url) && url.indexOf(this.current.url) === 0;
+            if (this.current.url === '' && this.current.url === url) {
+                return true;
+            } else if (this.current.url === '') {
+                return false;
+            } else {
+                return _.isString(this.current.url) && _.isString(url)
+                    && url.indexOf(this.current.url) === 0;
+            }
+        },
+        
+        matchesRoute: function(routeName, params) {
+            return this.matchesUrl(this.get(routeName, params));
         },
         
         ancestors: function(routeName, params) {
@@ -349,5 +360,4 @@
             return filter;
         }
     });
-    
 });

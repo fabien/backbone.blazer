@@ -357,6 +357,10 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.matchesUrl('show/:id', 1234)).to.be.true;
         expect(this.router.matchesUrl('show/5678')).to.be.false;
         
+        expect(this.router.matchesRoute('show', 1234)).to.be.true;
+        expect(this.router.matchesRoute('show', { id: 1234 })).to.be.true;
+        expect(this.router.matchesRoute('show', { id: 5678 })).to.be.false;
+        
         // Navigate (2)
         
         this.router.navigate('show/all', { trigger: true });
@@ -454,6 +458,28 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.current.route).to.equal('users/*path');
         expect(this.router.current.url).to.equal('users/foo/bar/baz');
         expect(this.router.current.parameters).to.eql({ path: 'foo/bar/baz' });
+    });
+    
+    it('should handle empty/index routes', function() {
+        Backbone.history.stop();
+        
+        this.router = new TestRouter();
+        this.router.route('index', '', this.testRoute);
+        this.router.route('users', 'users/:id', this.testRoute);
+
+        Backbone.history.location = new Location('http://example.org');
+        Backbone.history.start({ pushState: true });
+        
+        expect(this.router.current.name).to.equal('index');
+        expect(this.router.current.route).to.equal('');
+        expect(this.router.current.url).to.equal('');
+        expect(this.router.current.parameters).to.eql({});
+        
+        expect(this.router.matchesUrl('')).to.be.true;
+        expect(this.router.matchesUrl('users/1234')).to.be.false;
+        
+        expect(this.router.matchesRoute('index')).to.be.true;
+        expect(this.router.matchesRoute('users', { id: 1234 })).to.be.false;
     });
     
 });
