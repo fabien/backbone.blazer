@@ -558,4 +558,29 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.current.url).to.equal('custom/route');
     });
     
+    it('should enable route sections (nested routers)', function() {
+        var section = this.router.section('collection');
+        section.route('index', '', new TestRoute());
+        section.route('list', 'list', new TestRoute());
+        
+        expect(section.router.getUrl('index')).to.equal('collection');
+        expect(section.router.getUrl('list')).to.equal('collection/list');
+        
+        this.router.navigate('collection', { trigger: true });
+        
+        expect(section.router.current.name).to.equal('index');
+        expect(section.router.current.url).to.equal('collection');
+        
+        expect(this.router.current.name).to.equal('collection');
+        expect(this.router.current.url).to.equal('collection');
+        
+        this.router.navigate('collection/list', { trigger: true });
+        
+        expect(section.router.current.name).to.equal('list');
+        expect(section.router.current.url).to.equal('collection/list');
+        
+        expect(this.router.current.name).to.equal('collection');
+        expect(this.router.current.url).to.equal('collection/list');
+    });
+    
 });

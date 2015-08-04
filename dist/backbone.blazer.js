@@ -50,6 +50,18 @@
         }
     });
     
+    Backbone.Blazer.SubRouter = Backbone.Blazer.Route.extend({
+        constructor: function(options) {
+            this.router = new Backbone.Blazer.Router(options);
+        },
+        execute: function(ctx) {
+            this.router.executeUrl(ctx.parameters.path || '');
+        },
+        route: function(routeName, route, config) {
+            return this.router.route(routeName, route, config);
+        }
+    });
+    
     Backbone.Blazer.Router = Backbone.Router.extend({
         constructor: function(options) {
             Backbone.Router.apply(this, arguments);
@@ -110,6 +122,16 @@
             
             Backbone.history.route(route, routeHandler);
             return this;
+        },
+        
+        section: function(routeName, root, options) {
+            if (_.isObject(root)) options = root, root = null;
+            if (!_.isString(root)) root = routeName;
+            options = _.extend({ root: root }, options);
+            var route = root + '(/*path)';
+            var handler = new Backbone.Blazer.SubRouter(options);
+            this.route(routeName, route, handler);
+            return handler;
         },
         
         executeRoute: function(routeName, params) {
