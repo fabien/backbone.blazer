@@ -39,6 +39,9 @@ Backbone.Blazer.Section = Backbone.Blazer.Route.extend({
     constructor: function(options) {
         this.router = new Backbone.Blazer.Router(options);
         this.router.options.history = false;
+        this.on('before:execute', function(ctx) {
+            ctx.section = this;
+        });
     },
     execute: function(ctx) {
         this.router.executeUrl(ctx.parameters.path || '');
@@ -92,6 +95,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         }
         
         var routeHandler = function(fragment) {
+            routeData = _.extend({}, routeData);
             routeData.params = router._extractParameters(route, fragment);
             routeData.parameters = {};
             if (_.isString(routeData.route) && !_.isEmpty(routeData.params)) {
@@ -191,10 +195,12 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         var previous = this.current ? this.current : null;
         
         var current = {};
+        current.router = router;
         current.handler = handler;
         current.name = _.isString(routeData.name) ? routeData.name : '';
         current.route = routeData.route || '';
         current.url = _.isFunction(routeData.url) ? routeData.url(routeData.params || []) : '';
+        current.params = routeData.params || [];
         current.parameters = routeData.parameters || {};
         
         this.previous = previous;
