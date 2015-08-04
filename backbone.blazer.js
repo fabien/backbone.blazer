@@ -123,6 +123,10 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         return route;
     },
     
+    getUrl: function(routeName, params) {
+        return this.get(routeName, params || {});
+    },
+    
     handler: function(routeName) {
         return this.routeHandlers[routeName];
     },
