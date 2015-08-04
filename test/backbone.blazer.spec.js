@@ -461,6 +461,8 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.url('users(/:id)')).to.equal('users');
         expect(this.router.url('users(/:id)', { id: 1234 })).to.equal('users/1234');
         expect(this.router.url('users/*path')).to.equal('users');
+        expect(this.router.url('users/*path', null)).to.equal('users');
+        expect(this.router.url('users/*path', { path: null })).to.equal('users');
         expect(this.router.url('users/*path', { path: 'foo/bar' })).to.equal('users/foo/bar');
     });
     

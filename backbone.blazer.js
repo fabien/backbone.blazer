@@ -185,7 +185,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         path = (path + '').replace(/[\(\)]/g, '');
         return path.replace(/\/[:\*](\w+)/g, function (segment, key) {
             var match = params[key] || params[index++];
-            return _.isUndefined(match) ? '' : '/' + match;
+            return _.isUndefined(match) || _.isNull(match) ? '' : '/' + match;
         });
     },
     
