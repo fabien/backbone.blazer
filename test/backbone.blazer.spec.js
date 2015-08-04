@@ -9,6 +9,14 @@ describe('Backbone.Blazer.Router', function() {
     var RedirectRoute = Backbone.Blazer.Route.extend({
         execute: function() {}
     });
+    
+    var EditRoute = Backbone.Blazer.Route.extend({
+        dirty: false, // flag: unsaved edits
+        canNavigate: function(fragment, options, router) {
+            var leaving = router.current.handler === this;
+            if (leaving) return !this.dirty;
+        }
+    });
 
     var TestRouter = Backbone.Blazer.Router.extend();
 
@@ -480,6 +488,41 @@ describe('Backbone.Blazer.Router', function() {
         
         expect(this.router.matchesRoute('index')).to.be.true;
         expect(this.router.matchesRoute('users', { id: 1234 })).to.be.false;
+    });
+    
+    it('should skip routing when canNavigate returns false', function() {
+        var editRoute = new EditRoute();
+        this.router.route('edit', 'edit', editRoute);
+        this.router.navigate('edit', { trigger: true });
+        
+        editRoute.dirty = true;
+        
+        expect(this.router.current.name).to.equal('edit');
+        expect(Backbone.history.fragment).to.equal('edit');
+        
+        this.router.navigate('route', { trigger: true });
+        
+        expect(this.router.current.name).to.equal('edit');
+        expect(Backbone.history.fragment).to.equal('edit');
+        
+        editRoute.dirty = false;
+        
+        this.router.navigate('route', { trigger: true });
+        
+        expect(this.router.current.name).to.equal('route');
+        expect(Backbone.history.fragment).to.equal('route');
+        
+        editRoute.dirty = true;
+        
+        this.router.navigate('edit', { trigger: true });
+        
+        expect(this.router.current.name).to.equal('edit');
+        expect(Backbone.history.fragment).to.equal('edit');
+        
+        this.router.navigate('route', { trigger: true });
+        
+        expect(this.router.current.name).to.equal('edit');
+        expect(Backbone.history.fragment).to.equal('edit');
     });
     
 });

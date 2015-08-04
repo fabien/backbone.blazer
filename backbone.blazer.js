@@ -16,6 +16,7 @@ _.extend(Backbone.Blazer.Route.prototype, Backbone.Events, {
     prepare: function() {},
     execute: function() {},
     error: function() {},
+    canNavigate: function(fragment, options, router) {},
     redirect: function(fragment) {
         return {
             redirectFragment: fragment
@@ -89,6 +90,26 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         return this;
     },
     
+    navigate: function(fragment, options) {
+        options = options || {};
+        
+        if (this.canNavigate(fragment, options) === false) {
+            return; // rejected
+        }
+        
+        if (this.previous && this.previous.handler instanceof Backbone.Blazer.Route
+            && this.previous.handler.canNavigate(fragment, options, this) === false) {
+            return; // rejected
+        }
+        
+        if (this.current && this.current.handler instanceof Backbone.Blazer.Route
+            && this.current.handler.canNavigate(fragment, options, this) === false) {
+            return; // rejected
+        }
+        
+        return Backbone.Router.prototype.navigate.call(this, fragment, options);
+    },
+    
     navigateTo: function(routeName, params, options) {
         var url = this.get(routeName, params);
         return this.navigate(url, options);
@@ -110,14 +131,17 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         var handler = routeData.handler;
         var router = this;
         
-        this.previous = this.current ? this.current : null;
+        var previous = this.current ? this.current : null;
         
-        this.current = {};
-        this.current.handler = handler;
-        this.current.name = _.isString(routeData.name) ? routeData.name : '';
-        this.current.route = routeData.route || '';
-        this.current.url = _.isFunction(routeData.url) ? routeData.url(routeData.params || []) : '';
-        this.current.parameters = routeData.parameters || {};
+        var current = {};
+        current.handler = handler;
+        current.name = _.isString(routeData.name) ? routeData.name : '';
+        current.route = routeData.route || '';
+        current.url = _.isFunction(routeData.url) ? routeData.url(routeData.params || []) : '';
+        current.parameters = routeData.parameters || {};
+        
+        this.previous = previous;
+        this.current = current;
         
         if (_.isString(handler)) {
             if (_.isFunction(this[handler])) {
@@ -139,6 +163,10 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             router.trigger('route', name, args);
             Backbone.history.trigger('route', router, name, args);
         }
+    },
+    
+    canNavigate: function(fragment, options) {
+        // Hook method
     },
 
     url: function(path, params) {
