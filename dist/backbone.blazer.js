@@ -211,7 +211,7 @@
                 return false;
             } else {
                 return _.isString(this.current.url) && _.isString(url)
-                    && url.indexOf(this.current.url) === 0;
+                    && this.current.url.indexOf(url) === 0;
             }
         },
         

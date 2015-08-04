@@ -361,7 +361,7 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.current.url).to.equal('show/1234');
         expect(this.router.current.parameters).to.eql({ id: '1234' });
         
-        expect(this.router.matchesUrl('show/1234/details')).to.be.true;
+        expect(this.router.matchesUrl('show/1234/details')).to.be.false;
         expect(this.router.matchesUrl('show/:id', 1234)).to.be.true;
         expect(this.router.matchesUrl('show/5678')).to.be.false;
         
@@ -383,7 +383,7 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.current.url).to.equal('show/all');
         expect(this.router.current.parameters).to.eql({});
         
-        expect(this.router.matchesUrl('show/all/example')).to.be.true;
+        expect(this.router.matchesUrl('show/all/example')).to.be.false;
         expect(this.router.matchesUrl('show/all')).to.be.true;
         expect(this.router.matchesUrl('show/other')).to.be.false;
         
