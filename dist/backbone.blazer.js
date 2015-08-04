@@ -174,7 +174,7 @@
         
         get: function(routeName, params) {
             if (_.isString(routeName) && arguments.length > 1) {
-                return this.getUrl(routeName, params);
+                return this.getUrl.apply(this, arguments);
             }
             return this.namedRoutes[routeName];
         },
@@ -183,7 +183,8 @@
             var root = this.options.root || '';
             var route = this.namedRoutes[routeName];
             if (_.isString(route)) {
-                var url = this.url(route, params);
+                var args = _.rest(arguments);
+                var url = this.url.apply(this, [route].concat(args));
                 if (_.isEmpty(url)) return root;
                 return _.isEmpty(root) ? url : root + '/' + url;
             }

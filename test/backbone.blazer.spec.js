@@ -464,6 +464,10 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.url('users/*path', null)).to.equal('users');
         expect(this.router.url('users/*path', { path: null })).to.equal('users');
         expect(this.router.url('users/*path', { path: 'foo/bar' })).to.equal('users/foo/bar');
+        expect(this.router.url('users/:a/:b/:c')).to.equal('users');
+        expect(this.router.url('users/:a/:b/:c', 'foo')).to.equal('users/foo');
+        expect(this.router.url('users/:a/:b/:c', 'foo', 'bar')).to.equal('users/foo/bar');
+        expect(this.router.url('users/:a/:b/:c', 'foo', 'bar', 'baz')).to.equal('users/foo/bar/baz');
     });
     
     it('should handle splat routes', function() {
