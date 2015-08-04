@@ -539,6 +539,23 @@ describe('Backbone.Blazer.Router', function() {
         this.router.executeUrl('route');
         expect(this.testRoute.execute).to.have.been.called;
         expect(this.router.current.name).to.equal('route');
-    })
+    });
+    
+    it('should use a custom route url root', function() {
+        Backbone.history.stop();
+        
+        this.router = new TestRouter({ root: 'custom' });
+        this.router.route('index', '', new TestRoute());
+        this.router.route('route', 'route', new TestRoute());
+        
+        Backbone.history.location = new Location('http://example.org');
+        Backbone.history.start({ pushState: true });
+        
+        expect(this.router.current.url).to.equal('custom');
+        
+        this.router.navigate('route', { trigger: true });
+        
+        expect(this.router.current.url).to.equal('custom/route');
+    });
     
 });

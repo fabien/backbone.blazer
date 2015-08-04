@@ -35,8 +35,9 @@ _.extend(Backbone.Blazer.Route.prototype, Backbone.Events, {
 });
 
 Backbone.Blazer.Router = Backbone.Router.extend({
-    constructor: function() {
+    constructor: function(options) {
         Backbone.Router.apply(this, arguments);
+        this.options = _.extend({}, _.result(this, 'options'), options);
         this.namedRoutes = {};
         this.routeHandlers = {};
         this.handlers = [];
@@ -72,7 +73,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             routeData.url = function(params) {
                 var defaults = _.extend({}, routeData.parameters);
                 params = _.isArray(params) ? params : (_.isObject(params) ? _.extend(defaults, params) : defaults);
-                return routeData.router.get(routeName, params);
+                return routeData.router.getUrl(routeName, params);
             };
         }
         
@@ -141,8 +142,14 @@ Backbone.Blazer.Router = Backbone.Router.extend({
     },
     
     getUrl: function(routeName, params) {
+        var root = this.options.root || '';
         var route = this.namedRoutes[routeName];
-        if (_.isString(route)) return this.url(route, params);
+        if (_.isString(route)) {
+            var url = this.url(route, params);
+            if (_.isEmpty(url)) return root;
+            return _.isEmpty(root) ? url : root + '/' + url;
+        }
+        return root;
     },
     
     handler: function(routeName) {
