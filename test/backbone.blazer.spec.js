@@ -698,4 +698,22 @@ describe('Backbone.Blazer.Router', function() {
         });
     });
     
+    it('should trigger enter and exit events on the route', function() {
+        var events = [];
+        this.testRoute.on('enter', function(ctx) {
+            events.push('enter:' + ctx.name);
+        });
+        this.testRoute.on('exit', function(ctx) {
+            events.push('exit:' + ctx.name);
+        });
+        
+        this.router.route('users', 'users', this.testRoute);
+        
+        this.router.navigate('route', { trigger: true });
+        this.router.navigate('users', { trigger: true });
+        
+        var expected = ['enter:route', 'exit:users', 'enter:users'];
+        expect(events).to.eql(expected);
+    });
+    
 });

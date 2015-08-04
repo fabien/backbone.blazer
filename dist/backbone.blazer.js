@@ -373,6 +373,8 @@
             dfd.then(function() {
                 return router._runBeforeFilters(router, route, routeData);
             }).then(function() {
+                if (previous) previous.trigger('exit', routeData, route);
+                route.trigger('enter', routeData, route);
                 return router._runHandler(route.prepare, router, route, routeData);
             }).then(function() {
                 if (router.current && router.current.handler !== route) {
