@@ -195,12 +195,17 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             return false;
         } else {
             return _.isString(this.current.url) && _.isString(url)
-                && this.current.url.indexOf(url) === 0;
+                && this.current.url === url;
         }
     },
     
     matchesRoute: function(routeName, params) {
         return this.matchesUrl(this.get(routeName, params));
+    },
+    
+    isAncestor: function(routeName) {
+        var current = (this.current && this.current.name);
+        return current && _.isString(routeName) && current.indexOf(routeName + '.') === 0;
     },
     
     ancestors: function(routeName, params) {

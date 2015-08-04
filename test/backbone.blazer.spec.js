@@ -433,6 +433,13 @@ describe('Backbone.Blazer.Router', function() {
         
         this.router.navigateTo('users.show.documents.detail', params, { trigger: true });
         
+        expect(this.router.isAncestor('users.show.documents.detail')).to.be.false;
+        expect(this.router.isAncestor('users.show.documents.other')).to.be.false;
+        expect(this.router.isAncestor('users.show.documents')).to.be.true;
+        expect(this.router.isAncestor('users.show')).to.be.true;
+        expect(this.router.isAncestor('users')).to.be.true;
+        expect(this.router.isAncestor('other')).to.be.false;
+        
         var nodes = this.router.ancestors();
         expect(_.pluck(nodes, 'url')).to.eql(ancestors);
         
