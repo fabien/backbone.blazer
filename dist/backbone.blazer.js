@@ -359,7 +359,7 @@
             router.trigger('before:execute', routeData, route);
             
             if (previous && _.isFunction(previous.exit)) {
-                dfd = router._runHandler(previous.exit, router, route, routeData);
+                dfd = router._runHandler(previous.exit, router, previous, routeData);
             } else {
                 dfd = $.Deferred().resolve().promise();
             }
