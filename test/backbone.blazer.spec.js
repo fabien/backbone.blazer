@@ -1,6 +1,6 @@
 describe('Backbone.Blazer.Router', function() {
     
-    var loadedUser;
+    var loadedUser, exited;
 
     var TestRoute = Backbone.Blazer.Route.extend({
         execute: function() {}
@@ -8,6 +8,34 @@ describe('Backbone.Blazer.Router', function() {
     
     var RedirectRoute = Backbone.Blazer.Route.extend({
         execute: function() {}
+    });
+    
+    var ExitRoute = Backbone.Blazer.Route.extend({
+        exit: function() { exited = true; }
+    });
+    
+    var PreparedRoute = Backbone.Blazer.Route.extend({
+        prepare: function() { return false; }
+    });
+    
+    var HaltedRoute = Backbone.Blazer.Route.extend({
+        exit: function() { return false; }
+    });
+    
+    var ResolvedRoute = Backbone.Blazer.Route.extend({
+        prepare: function() {
+            var dfd = $.Deferred();
+            setTimeout(dfd.resolve, 100);
+            return dfd.promise();
+        }
+    });
+    
+    var RejectedRoute = Backbone.Blazer.Route.extend({
+        prepare: function() {
+            var dfd = $.Deferred();
+            setTimeout(dfd.reject, 100);
+            return dfd.promise();
+        }
     });
     
     var EditRoute = Backbone.Blazer.Route.extend({
@@ -226,6 +254,22 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.redirectRoute.execute).to.have.been.called;
         expect(this.redirectRoute.error).not.to.have.been.called;
     });
+    
+    it('should run before filters in order until false is returned', function() {
+        var result = [];
+
+        this.testRoute.appendFilter(function() { return result.push(1); });
+        this.testRoute.appendFilter(function() { return false; });
+        this.testRoute.appendFilter(function() { return result.push(2); });
+
+        expect(this.testRoute.filters).to.have.length(3);
+
+        this.router.navigate('route', { trigger: true });
+        
+        expect(this.router.current).to.be.null;
+
+        expect(result).to.eql([1]);
+    });
 
     it('should run before filters in order until a redirect happens', function() {
         var result = [];
@@ -237,6 +281,8 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.testRoute.filters).to.have.length(3);
 
         this.router.navigate('route', { trigger: true });
+        
+        expect(this.router.current.url).to.equal('redirect');
 
         expect(result).to.eql([1]);
     });
@@ -585,6 +631,71 @@ describe('Backbone.Blazer.Router', function() {
         
         expect(this.router.current.name).to.equal('collection');
         expect(this.router.current.url).to.equal('collection/list');
+    });
+    
+    it('should run exit method on previous route', function() {
+        var exitRoute = new ExitRoute();
+        this.sinon.spy(exitRoute, 'exit');
+        
+        this.router.route('exit', 'exit', exitRoute);
+        
+        this.router.navigate('exit', { trigger: true });
+        
+        expect(this.router.current.name).to.equal('exit');
+        expect(exitRoute.exit).to.not.have.been.called;
+        
+        this.router.navigate('route', { trigger: true });
+        
+        expect(this.router.current.name).to.equal('route');
+        expect(exitRoute.exit).to.have.been.called;
+        
+        expect(exited).to.be.true;
+    });
+    
+    it('should halt if prepare method returns false', function() {
+        var preparedRoute = new PreparedRoute();
+        
+        this.router.route('halted', 'halted', preparedRoute);
+        
+        this.router.navigate('halted', { trigger: true });
+        
+        expect(this.router.current).to.be.null;
+    });
+    
+    it('should halt if exit method returns false', function() {
+        var haltedRoute = new HaltedRoute();
+        
+        this.router.route('halted', 'halted', haltedRoute);
+        
+        this.router.navigate('halted', { trigger: true });
+        
+        expect(this.router.current.name).to.equal('halted');
+        
+        this.router.navigate('route', { trigger: true });
+        
+        expect(this.router.current.name).to.equal('halted');
+    });
+    
+    it('should handle promises - resolved', function(next) {
+        this.router.route('promised', 'promised', new ResolvedRoute());
+        
+        this.router.navigate('promised', { trigger: true });
+        
+        this.router.on('after:execute', function(ctx) {
+            expect(ctx.router.current.name).to.equal('promised');
+            next();
+        });
+    });
+    
+    it('should handle promises - rejected', function(next) {
+        this.router.route('promised', 'promised', new RejectedRoute());
+        
+        this.router.navigate('promised', { trigger: true });
+        
+        this.router.on('after:cancel', function(ctx) {
+            expect(ctx.router.current).to.be.null;
+            next();
+        });
     });
     
 });

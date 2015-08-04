@@ -15,6 +15,7 @@ _.extend(Backbone.Blazer.Route.prototype, Backbone.Events, {
     },
     prepare: function() {},
     execute: function() {},
+    exit: function() {},
     error: function() {},
     canNavigate: function(fragment, options, router) {},
     redirect: function(fragment) {
@@ -61,7 +62,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             config = route, route = routeName;
             routeName = _.isString(route) ? route.replace(/\/[:\*]?/g, '-').toLowerCase() : null;
         }
-
+        
         if (!_.isEmpty(routeName)) {
             if (this.namedRoutes[routeName]) {
                 console.warn('Route `%s` already assigned: %s', routeName, this.namedRoutes[routeName]);
@@ -224,7 +225,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
     canNavigate: function(fragment, options) {
         // Hook method
     },
-
+    
     url: function(path, params) {
         if (_.isObject(params) && !_.isArray(params)) {
             params = params;
@@ -285,7 +286,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         }
         return nodes.reverse();
     },
-
+    
     nodes: function(routeName, params) {
         if (arguments.length === 0) {
             routeName = (this.current && this.current.name) || '';
@@ -307,7 +308,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         }.bind(this));
         return nodes;
     },
-
+    
     siblings: function(routeName, params) {
         if (arguments.length === 0) {
             routeName = (this.current && this.current.name) || '';
@@ -332,91 +333,116 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         }.bind(this));
         return nodes;
     },
-
+    
     _handleBlazerRoute: function(route, routeData, callback) {
         var router = this;
-
+        var previous = this.previous && this.previous.handler;
+        var dfd;
+        
         route.trigger('before:execute', routeData, route);
         router.trigger('before:execute', routeData, route);
-
-        this._runBeforeFilters(router, route, routeData).then(function() {
+        
+        if (previous && _.isFunction(previous.exit)) {
+            dfd = router._runHandler(previous.exit, router, route, routeData);
+        } else {
+            dfd = $.Deferred().resolve().promise();
+        }
+        
+        dfd.then(function() {
+            return router._runBeforeFilters(router, route, routeData);
+        }).then(function() {
             return router._runHandler(route.prepare, router, route, routeData);
         }).then(function() {
             if (router.current && router.current.handler !== route) {
                 return; // when redirected
             }
-
+            
             router._runHandler(route.execute, router, route, routeData);
-
+            
             if (_.isFunction(callback)) callback(routeData, route);
-
+            
             route.trigger('after:execute', routeData, route);
             router.trigger('after:execute', routeData, route);
-
+            
             router._runAfterFilters(router, route, routeData);
-        }).fail(function() {
+        }).fail(function(error) {
+            if (error instanceof Error) routeData.error = error;
+            
             if (router.current && router.current.handler !== route) {
                 return; // when redirected
+            } else {
+                router._cancelRoute(router, route, routeData);
             }
-
+            
             var args = Array.prototype.slice.call(arguments);
             args.unshift(routeData);
-
+            
             var errorHandled;
             router._runHandler(function(routeData) {
                 var result = route.error.apply(route, args);
                 errorHandled = result === true;
                 return result;
             }, router, route, routeData);
-
+            
             if (!errorHandled) {
                 router.trigger('error', args);
             }
         });
     },
-
+    
+    _cancelRoute: function(router, route, routeData) {
+        route.trigger('before:cancel', routeData, route);
+        router.trigger('before:cancel', routeData, route);
+        router.current = router.previous;
+        var previousFragment = router.previous && router.previous.url;
+        router.navigate(previousFragment || '', { replace: true });
+        route.trigger('after:cancel', routeData, route);
+        router.trigger('after:cancel', routeData, route);
+    },
+    
     _runBeforeFilters: function(router, route, routeData) {
         return this._runFilters('beforeRoute', router, route, routeData);
     },
-
+    
     _runAfterFilters: function(router, route, routeData) {
         return this._runFilters('afterRoute', router, route, routeData);
     },
-
+    
     _runFilters: function(which, router, route, routeData) {
         var filters = (this.filters || []).concat(route.filters || []),
             stageFilters = _.compact(_.pluck(filters, which)),
             def = $.Deferred();
-
-        var chain = _.reduce(stageFilters, function(previous, filter) {
             
+        var chain = _.reduce(stageFilters, function(previous, filter) {
             if (!previous) {
                 return router._runHandler(filter, router, route, routeData);
             }
-
+            
             return previous.then(function() {
                 return router._runHandler(filter, router, route, routeData);
             });
-
         }, null);
-
+        
         if (chain) {
             chain.then(def.resolve);
         } else {
             def.resolve();
         }
-
+        
         return def.promise();
     },
-
+    
     _runHandler: function(handler, router, route, routeData) {
         var result = handler.call(route, routeData);
-
+        
         if (result && result.redirectFragment) {
             router.navigate(result.redirectFragment, { trigger: true });
             return $.Deferred().reject().promise();
+        } else if (result === false) {
+            router._cancelRoute(router, route, routeData);
+            return $.Deferred().reject().promise();
         }
-
+        
         return $.when(result);
     }
 }, {
