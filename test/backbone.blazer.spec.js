@@ -534,4 +534,11 @@ describe('Backbone.Blazer.Router', function() {
         expect(Backbone.history.fragment).to.equal('edit');
     });
     
+    it('should execute a route', function() {
+        this.sinon.spy(this.testRoute, 'execute');
+        this.router.executeUrl('route');
+        expect(this.testRoute.execute).to.have.been.called;
+        expect(this.router.current.name).to.equal('route');
+    })
+    
 });

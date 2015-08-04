@@ -39,6 +39,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         Backbone.Router.apply(this, arguments);
         this.namedRoutes = {};
         this.routeHandlers = {};
+        this.handlers = [];
     },
     
     route: function(routeName, route, config) {
@@ -58,7 +59,8 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         if (!_.isRegExp(route)) {
             route = this._routeToRegExp(route);
         }
-
+        
+        var router = this;
         var routeData = {
             handler: config,
             router: this
@@ -74,8 +76,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
             };
         }
         
-        var router = this;
-        Backbone.history.route(route, function(fragment) {
+        var routeHandler = function(fragment) {
             routeData.params = router._extractParameters(route, fragment);
             routeData.parameters = {};
             if (_.isString(routeData.route) && !_.isEmpty(routeData.params)) {
@@ -86,8 +87,25 @@ Backbone.Blazer.Router = Backbone.Router.extend({
                 routeData.parameters = _.object(args, routeData.params.slice(0, args.length));
             }
             router.handleRoute(routeData);
-        });
+        };
+        
+        this.handlers.push({ route: route, callback: routeHandler });
+        
+        Backbone.history.route(route, routeHandler);
         return this;
+    },
+    
+    executeRoute: function(routeName, params) {
+        return this.executeUrl(this.getUrl(routeName, params));
+    },
+    
+    executeUrl: function(fragment) {
+        return _.any(this.handlers, function(handler) {
+            if (handler.route.test(fragment)) {
+                handler.callback(fragment);
+                return true;
+            }
+        });
     },
     
     navigate: function(fragment, options) {
@@ -130,7 +148,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
     handler: function(routeName) {
         return this.routeHandlers[routeName];
     },
-
+    
     handleRoute: function(routeData) {
         var handler = routeData.handler;
         var router = this;
