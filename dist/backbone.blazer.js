@@ -19,6 +19,8 @@
     Backbone.Blazer.Route = function(options) {
         this.options = _.extend({}, _.result(this, 'options'), options);
         this.initialize.apply(this, arguments);
+        this.on('enter', this.activate);
+        this.on('exit', this.deactivate);
     };
     
     Backbone.Blazer.Route.extend = Backbone.Model.extend;
@@ -39,6 +41,8 @@
                 redirectFragment: fragment
             };
         },
+        activate: function(ctx) {},
+        deactivate: function(ctx) {},
         prependFilter: function(before, after) {
             this.filters = this.filters || [];
             var filter = Backbone.Blazer.Router.createFilter(before, after);
@@ -53,17 +57,34 @@
     
     Backbone.Blazer.Section = Backbone.Blazer.Route.extend({
         constructor: function(options) {
+            Backbone.Blazer.Route.apply(this, options);
             this.router = new Backbone.Blazer.Router(options);
             this.router.options.history = false;
             this.on('before:execute', function(ctx) {
                 ctx.section = this;
             });
         },
+        
         execute: function(ctx) {
             this.router.executeUrl(ctx.parameters.path || '');
         },
+        
         route: function(routeName, route, config) {
             return this.router.route(routeName, route, config);
+        },
+        
+        activate: function(ctx) {
+            if (this.router.current && this.router.current.handler
+                && this.router.current.handler.activate) {
+                this.router.current.handler.activate(ctx);
+            }
+        },
+        
+        deactivate: function(ctx) {
+            if (this.router.current && this.router.current.handler
+                && this.router.current.handler.deactivate) {
+                this.router.current.handler.deactivate(ctx);
+            }
         }
     });
     
