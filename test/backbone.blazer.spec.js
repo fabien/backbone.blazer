@@ -516,6 +516,22 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.url('users/:a/:b/:c', 'foo', 'bar', 'baz')).to.equal('users/foo/bar/baz');
     });
     
+    it('should handle routes with serialized params', function() {
+        this.router.route('users', 'users/:params', this.testRoute);
+        
+        var params = { foo: 'bar', biz: 'baz' };
+        
+        expect(this.router.url('users', params)).to.equal('users'); // ignored
+        expect(this.router.url('users/:params', params)).to.equal('users/foo:bar+biz:baz');
+        
+        this.router.navigateTo('users', params, { trigger: true });
+        
+        expect(this.router.current.name).to.equal('users');
+        expect(this.router.current.route).to.equal('users/:params');
+        expect(this.router.current.url).to.equal('users/foo:bar+biz:baz');
+        expect(this.router.current.parameters).to.eql(params);
+    });
+    
     it('should handle splat routes', function() {
         this.router.route('users', 'users/*path', this.testRoute);
         

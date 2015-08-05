@@ -144,11 +144,18 @@
                 routeData.params = router._extractParameters(route, fragment);
                 routeData.parameters = _.extend({}, router.options.defaults);
                 if (_.isString(routeData.route) && !_.isEmpty(routeData.params)) {
+                    var params = {};
                     var args = [];
                     routeData.route.replace(/\/?[:\*](\w+)/g, function (segment, key) {
-                        args.push(key);
+                        if (key === 'params') {
+                            var value = routeData.params[args.length];
+                            params = router.deserializeParams(value);
+                        } else {
+                            args.push(key);
+                        }
                     });
                     _.extend(routeData.parameters, _.object(args, routeData.params.slice(0, args.length)));
+                    _.defaults(routeData.parameters, params);
                 }
                 router.handleRoute(routeData);
             };
@@ -290,13 +297,43 @@
                 params = {};
             }
             var index = 0;
+            var keys = [];
+            var appendParams;
+            
             path = (path + '').replace(/[\(\)]/g, '');
-            return path.replace(/\/?[:\*](\w+)/g, function (segment, key) {
+            var url = path.replace(/\/?[:\*](\w+)/g, function (segment, key) {
                 var value = params[key] || params[index++];
                 var blank = _.isUndefined(value) || _.isNull(value);
+                if (!blank) keys.push(key);
+                if (!appendParams && key === 'params') appendParams = true;
                 if (path.indexOf(segment) === 0 && !blank) return value;
                 return blank ? '' : '/' + value;
             });
+            
+            if (appendParams && _.isObject(params) && !_.isArray(params)) {
+                var serialized = this.serializeParams(_.omit(params, keys));
+                url = _.isEmpty(url) ? serialized : url + '/' + serialized;
+            }
+            
+            return url;
+        },
+        
+        serializeParams: function(options) {
+            return (_.map(_.filter(_.pairs(options), 
+                function(pair){ return pair[1]; }), 
+                function(pair){ return pair.join(':');
+            })).join('+');
+        },
+        
+        deserializeParams: function(params) {
+            if (!_.isString(params) || _.isEmpty(params)) return {};
+            var options = {};
+            params = params.split('+');
+            _.each(params, function(pair){
+                var values = pair.split(':');
+                options[values[0]] = values[1];
+            });
+            return options;
         },
         
         matchesUrl: function(url, params) {
