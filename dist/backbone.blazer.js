@@ -103,11 +103,13 @@
                 routeName = _.isString(route) ? route.replace(/\/[:\*]?/g, '-').toLowerCase() : null;
             }
             
-            if (_.isString(route) && _.isString(this.options.path)) {
+            var path = this.options.path || this.path;
+            
+            if (_.isString(route) && _.isString(path)) {
                 if (_.isEmpty(route)) {
-                    route = this.options.path;
+                    route = path;
                 } else {
-                    route = this.options.path + '/' + route;
+                    route = path + '/' + route;
                 }
             }
             
@@ -142,7 +144,7 @@
             var routeHandler = function(fragment) {
                 routeData = _.extend({}, routeData);
                 routeData.params = router._extractParameters(route, fragment);
-                routeData.parameters = _.extend({}, router.options.defaults);
+                routeData.parameters = _.extend({}, router.defaults, router.options.defaults);
                 if (_.isString(routeData.route) && !_.isEmpty(routeData.params)) {
                     var params = {};
                     var args = [];
@@ -225,13 +227,13 @@
         },
         
         getUrl: function(routeName, params) {
-            var root = this.options.root || '';
+            var root = this.options.root || this.root || '';
             var route = this.namedRoutes[routeName];
             if (_.isString(route)) {
                 var args = _.rest(arguments);
                 if (_.isEmpty(args)) args.push({});
                 if (_.isObject(args[0])) {
-                    _.defaults(args[0], this.options.defaults || {});
+                    _.defaults(args[0], this.options.defaults, this.defaults);
                 }
                 var url = this.url.apply(this, [route].concat(args));
                 if (_.isEmpty(url)) return root;
