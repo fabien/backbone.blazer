@@ -499,6 +499,15 @@ describe('Backbone.Blazer.Router', function() {
         }]);
     });
     
+    it('should setup named routes from options', function() {
+        this.router.route('users', 'users', { title: 'Users' });
+        expect(this.router.routeHandlers['users']).to.be.instanceof(Backbone.Blazer.Route);
+        expect(this.router.routeHandlers['users'].options.title).to.equal('Users');
+        
+        this.router.route('example', 'example');
+        expect(this.router.routeHandlers['example']).to.be.instanceof(Backbone.Blazer.Route);
+    });
+    
     it('should generate urls from routes', function() {
         expect(this.router.url('users')).to.equal('users');
         expect(this.router.url('users/:id')).to.equal('users');

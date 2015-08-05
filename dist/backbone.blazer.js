@@ -116,9 +116,22 @@
         },
         
         route: function(routeName, route, config) {
-            if (arguments.length < 3) {
+            if (arguments.length < 3 && !_.isString(route)) {
                 config = route, route = routeName;
                 routeName = _.isString(route) ? route.replace(/\/[:\*]?/g, '-').toLowerCase() : null;
+            } else {
+                config = config || {};
+            }
+            
+            if (_.isObject(config) && !(config instanceof Backbone.Blazer.Route)) {
+                var RouteConstructor;
+                if (_.isFunction(this.routeConstructor)) {
+                    RouteConstructor = this.routeConstructor(config);
+                } else if (_.isObject(this.routeConstructor)) {
+                    RouteConstructor = this.routeConstructor;
+                }
+                RouteConstructor = RouteConstructor || Backbone.Blazer.Route;
+                config = new RouteConstructor(config);
             }
             
             var path = this.options.path || this.path;
