@@ -91,10 +91,28 @@
     Backbone.Blazer.Router = Backbone.Router.extend({
         constructor: function(options) {
             Backbone.Router.apply(this, arguments);
-            this.options = _.extend({}, _.result(this, 'options'), options);
+            options = options || {};
+            this.options = _.extend({}, _.result(this, 'options'), _.omit(options, 'channel'));
+            
             this.namedRoutes = {};
             this.routeHandlers = {};
             this.handlers = [];
+            
+            if (_.isObject(Backbone.Radio) && options.channel !== false) {
+                var channelName = options.channel || this.channelName || 'routing';
+                var channel = this.channel = Backbone.Radio.channel(channelName);
+                this.channel.listenTo(this, 'all', function(eventName, ctx) {
+                    channel.trigger.apply(channel, [eventName].concat(_.rest(arguments)));
+                });
+            }
+        },
+        
+        start: function() {
+            this.__stopped = false;
+        },
+        
+        stop: function() {
+            this.__stopped = true;
         },
         
         route: function(routeName, route, config) {
@@ -159,7 +177,14 @@
                     _.extend(routeData.parameters, _.object(args, routeData.params.slice(0, args.length)));
                     _.defaults(routeData.parameters, params);
                 }
-                router.handleRoute(routeData);
+                if (router.__stopped && routeData.handler) {
+                    router.trigger('route:unhandled', routeData);
+                    router._cancelRoute(router, routeData.handler, routeData);
+                } else if (router.__stopped) {
+                    router.trigger('route:unhandled', routeData);
+                } else {
+                    router.handleRoute(routeData);
+                }
             };
             
             this.handlers.push({ route: route, callback: routeHandler });

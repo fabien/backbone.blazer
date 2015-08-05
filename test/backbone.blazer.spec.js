@@ -763,4 +763,20 @@ describe('Backbone.Blazer.Router', function() {
         expect(events).to.eql(expected);
     });
     
+    it('should allow start/stop of route handling', function() {
+        this.router.stop();
+        
+        Backbone.history.navigate('route', { trigger: true });
+        
+        expect(this.router.current).to.be.undefined;
+        expect(Backbone.history.fragment).to.equal('');
+        
+        this.router.start();
+        
+        Backbone.history.navigate('route', { trigger: true });
+        
+        expect(this.router.current.name).to.equal('route');
+        expect(Backbone.history.fragment).to.equal('route');
+    });
+    
 });
