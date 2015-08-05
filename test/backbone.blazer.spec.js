@@ -608,6 +608,37 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.current.url).to.equal('custom/route');
     });
     
+    it('should use a custom path prefix', function() {
+        Backbone.history.stop();
+        
+        this.router = new TestRouter({
+            path: ':lc',
+            defaults: { lc: 'en' }
+        });
+        
+        this.router.route('index', '', new TestRoute());
+        this.router.route('route', 'route', new TestRoute());
+        
+        expect(this.router.getUrl('index')).to.equal('en');
+        expect(this.router.getUrl('route')).to.equal('en/route');
+        
+        expect(this.router.getUrl('route', 'nl')).to.equal('nl/route');
+        expect(this.router.getUrl('route', { lc: 'nl' })).to.equal('nl/route');
+        
+        Backbone.history.location = new Location('http://example.org');
+        Backbone.history.start({ pushState: true });
+        
+        this.router.navigateTo('index', {}, { trigger: true });
+        
+        expect(this.router.current.url).to.equal('en');
+        expect(this.router.current.route).to.equal(':lc');
+        
+        this.router.navigateTo('route', { lc: 'en' }, { trigger: true });
+        
+        expect(this.router.current.url).to.equal('en/route');
+        expect(this.router.current.route).to.equal(':lc/route');
+    });
+    
     it('should enable route sections (nested routers)', function() {
         var section = this.router.section('collection');
         section.route('index', '', new TestRoute());

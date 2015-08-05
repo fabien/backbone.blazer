@@ -103,6 +103,14 @@
                 routeName = _.isString(route) ? route.replace(/\/[:\*]?/g, '-').toLowerCase() : null;
             }
             
+            if (_.isString(route) && _.isString(this.options.path)) {
+                if (_.isEmpty(route)) {
+                    route = this.options.path;
+                } else {
+                    route = this.options.path + '/' + route;
+                }
+            }
+            
             if (!_.isEmpty(routeName)) {
                 if (this.namedRoutes[routeName]) {
                     console.warn('Route `%s` already assigned: %s', routeName, this.namedRoutes[routeName]);
@@ -134,13 +142,13 @@
             var routeHandler = function(fragment) {
                 routeData = _.extend({}, routeData);
                 routeData.params = router._extractParameters(route, fragment);
-                routeData.parameters = {};
+                routeData.parameters = _.extend({}, router.options.defaults);
                 if (_.isString(routeData.route) && !_.isEmpty(routeData.params)) {
                     var args = [];
-                    routeData.route.replace(/\/[:\*](\w+)/g, function (segment, key) {
+                    routeData.route.replace(/\/?[:\*](\w+)/g, function (segment, key) {
                         args.push(key);
                     });
-                    routeData.parameters = _.object(args, routeData.params.slice(0, args.length));
+                    _.extend(routeData.parameters, _.object(args, routeData.params.slice(0, args.length)));
                 }
                 router.handleRoute(routeData);
             };
@@ -214,6 +222,10 @@
             var route = this.namedRoutes[routeName];
             if (_.isString(route)) {
                 var args = _.rest(arguments);
+                if (_.isEmpty(args)) args.push({});
+                if (_.isObject(args[0])) {
+                    _.defaults(args[0], this.options.defaults || {});
+                }
                 var url = this.url.apply(this, [route].concat(args));
                 if (_.isEmpty(url)) return root;
                 return _.isEmpty(root) ? url : root + '/' + url;
@@ -279,9 +291,11 @@
             }
             var index = 0;
             path = (path + '').replace(/[\(\)]/g, '');
-            return path.replace(/\/[:\*](\w+)/g, function (segment, key) {
-                var match = params[key] || params[index++];
-                return _.isUndefined(match) || _.isNull(match) ? '' : '/' + match;
+            return path.replace(/\/?[:\*](\w+)/g, function (segment, key) {
+                var value = params[key] || params[index++];
+                var blank = _.isUndefined(value) || _.isNull(value);
+                if (path.indexOf(segment) === 0 && !blank) return value;
+                return blank ? '' : '/' + value;
             });
         },
         
