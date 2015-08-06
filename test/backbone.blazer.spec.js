@@ -380,15 +380,16 @@ describe('Backbone.Blazer.Router', function() {
         
         // Test setup
         
-        expect(this.router.get('show')).to.equal('show/:id');
-        expect(this.router.get('show', { id: '1234' })).to.equal('show/1234');
-        expect(this.router.get('show', '1234')).to.equal('show/1234');
+        expect(this.router.getRoute('show')).to.equal('show/:id');
+        expect(this.router.getUrl('show', { id: '1234' })).to.equal('show/1234');
+        expect(this.router.getUrl('show', '1234')).to.equal('show/1234');
         
-        expect(this.router.get('show-all')).to.equal('show/all');
+        expect(this.router.getRoute('show-all')).to.equal('show/all');
+        expect(this.router.getUrl('show-all')).to.equal('show/all');
         
-        expect(this.router.handler('show')).to.equal(this.testRoute);
-        expect(this.router.handler('user.show')).to.equal(this.testRoute);
-        expect(this.router.handler('show-all')).to.equal(this.testRoute);
+        expect(this.router.getHandler('show')).to.equal(this.testRoute);
+        expect(this.router.getHandler('user.show')).to.equal(this.testRoute);
+        expect(this.router.getHandler('show-all')).to.equal(this.testRoute);
         
         // Navigate (1)
         
@@ -501,23 +502,23 @@ describe('Backbone.Blazer.Router', function() {
     
     it('should setup named routes from options', function() {
         this.router.route('users', 'users', { title: 'Users' });
-        expect(this.router.routeHandlers['users']).to.be.instanceof(Backbone.Blazer.Route);
-        expect(this.router.routeHandlers['users'].options.title).to.equal('Users');
+        expect(this.router.getHandler('users')).to.be.instanceof(Backbone.Blazer.Route);
+        expect(this.router.getHandler('users').options.title).to.equal('Users');
         
         this.router.route('example', 'example');
-        expect(this.router.routeHandlers['example']).to.be.instanceof(Backbone.Blazer.Route);
+        expect(this.router.getHandler('example')).to.be.instanceof(Backbone.Blazer.Route);
     });
     
     it('should setup named routes using addRoutes - with array', function() {
         this.router.addRoutes([{ name: 'users', path: 'users', title: 'Users' }]);
-        expect(this.router.routeHandlers['users']).to.be.instanceof(Backbone.Blazer.Route);
-        expect(this.router.routeHandlers['users'].options.title).to.equal('Users');
+        expect(this.router.getHandler('users')).to.be.instanceof(Backbone.Blazer.Route);
+        expect(this.router.getHandler('users').options.title).to.equal('Users');
     });
     
     it('should setup named routes using addRoutes - with object', function() {
         this.router.addRoutes({ users: { path: 'users', title: 'Users' } });
-        expect(this.router.routeHandlers['users']).to.be.instanceof(Backbone.Blazer.Route);
-        expect(this.router.routeHandlers['users'].options.title).to.equal('Users');
+        expect(this.router.getHandler('users')).to.be.instanceof(Backbone.Blazer.Route);
+        expect(this.router.getHandler('users').options.title).to.equal('Users');
     });
     
     it('should generate urls from routes', function() {

@@ -93,9 +93,6 @@
             Backbone.Router.apply(this, arguments);
             options = options || {};
             this.options = _.extend({}, _.result(this, 'options'), _.omit(options, 'channel'));
-            
-            this.namedRoutes = {};
-            this.routeHandlers = {};
             this.handlers = [];
             
             if (_.isObject(Backbone.Radio) && options.channel !== false) {
@@ -136,6 +133,9 @@
                 config = config || {};
             }
             
+            var existing = this.getRoute(routeName);
+            if (existing) console.warn('Route `%s` already assigned: %s', routeName, existing);
+            
             if (_.isObject(config) && !(config instanceof Backbone.Blazer.Route)) {
                 var RouteConstructor;
                 if (_.isFunction(this.routeConstructor) // plain function, not a constructor
@@ -158,17 +158,9 @@
                 }
             }
             
-            if (!_.isEmpty(routeName)) {
-                if (this.namedRoutes[routeName]) {
-                    console.warn('Route `%s` already assigned: %s', routeName, this.namedRoutes[routeName]);
-                }
-                if (_.isString(route)) this.namedRoutes[routeName] = route;
-                if (config instanceof Backbone.Blazer.Route) this.routeHandlers[routeName] = config;
-            }
+            var routePath = _.isString(route) ? route : null;
             
-            if (!_.isRegExp(route)) {
-                route = this._routeToRegExp(route);
-            }
+            if (!_.isRegExp(route)) route = this._routeToRegExp(route);
             
             var router = this;
             var routeData = {
@@ -176,15 +168,13 @@
                 router: this
             };
             
-            if (routeName && _.has(this.namedRoutes, routeName)) {
-                routeData.route = this.namedRoutes[routeName];
-                routeData.name = routeName;
-                routeData.url = function(params) {
-                    var defaults = _.extend({}, routeData.parameters);
-                    params = _.isArray(params) ? params : (_.isObject(params) ? _.extend(defaults, params) : defaults);
-                    return routeData.router.getUrl(routeName, params);
-                };
-            }
+            routeData.route = routePath;
+            routeData.name = routeName;
+            routeData.url = function(params) {
+                var defaults = _.extend({}, routeData.parameters);
+                params = _.isArray(params) ? params : (_.isObject(params) ? _.extend(defaults, params) : defaults);
+                return routeData.router.getUrl(routeName, params);
+            };
             
             var routeHandler = function(fragment) {
                 routeData = _.extend({}, routeData);
@@ -214,7 +204,11 @@
                 }
             };
             
-            this.handlers.push({ route: route, callback: routeHandler });
+            var handler = { regexp: route, callback: routeHandler, handler: config };
+            if (routeName) handler.name = routeName;
+            if (routePath) handler.route = routePath;
+            
+            this.handlers.push(handler);
             
             if (this.options.history !== false) {
                 Backbone.history.route(route, routeHandler);
@@ -239,7 +233,7 @@
         
         executeUrl: function(fragment) {
             return _.any(this.handlers, function(handler) {
-                if (handler.route.test(fragment)) {
+                if (handler.regexp.test(fragment)) {
                     handler.callback(fragment);
                     return true;
                 }
@@ -267,20 +261,24 @@
         },
         
         navigateTo: function(routeName, params, options) {
-            var url = this.get(routeName, params);
+            var url = this.getUrl(routeName, params);
             return this.navigate(url, options);
         },
         
-        get: function(routeName, params) {
-            if (_.isString(routeName) && arguments.length > 1) {
-                return this.getUrl.apply(this, arguments);
-            }
-            return this.namedRoutes[routeName];
+        get: function(routeName) {
+            return _.find(this.handlers, function(handler) {
+                return handler.name === routeName;
+            });
+        },
+        
+        getRoute: function(routeName) {
+            var handler = this.get(routeName);
+            return handler && handler.route;
         },
         
         getUrl: function(routeName, params) {
             var root = this.options.root || this.root || '';
-            var route = this.namedRoutes[routeName];
+            var route = this.getRoute(routeName);
             if (_.isString(route)) {
                 var args = _.rest(arguments);
                 if (_.isEmpty(args)) args.push({});
@@ -294,8 +292,9 @@
             return root;
         },
         
-        handler: function(routeName) {
-            return this.routeHandlers[routeName];
+        getHandler: function(routeName) {
+            var handler = this.get(routeName);
+            return handler && handler.handler;
         },
         
         handleRoute: function(routeData) {
@@ -405,7 +404,7 @@
         },
         
         matchesRoute: function(routeName, params) {
-            return this.matchesUrl(this.get(routeName, params));
+            return this.matchesUrl(this.getUrl(routeName, params));
         },
         
         isAncestor: function(routeName) {
@@ -425,7 +424,7 @@
             var segments = routeName.split('.');
             while (segments.length) {
                 var name = segments.join('.');
-                var route = this.get(name);
+                var route = this.getRoute(name);
                 if (route) {
                     var url = this.url(route, params);
                     nodes.push({ name: name, route: route, url: url });
@@ -445,13 +444,10 @@
             }
             var nodes = [];
             var match = routeName + '.';
-            _.each(_.keys(this.routeHandlers), function(name) {
-                if (name.indexOf(match) === 0) {
-                    var route = this.get(name);
-                    if (route) {
-                        var url = this.url(route, params);
-                        nodes.push({ name: name, route: route, url: url });
-                    }
+            _.each(this.handlers, function(handler) {
+                if (handler.name && handler.name.indexOf(match) === 0) {
+                    var url = this.url(handler.route, params);
+                    nodes.push({ name: handler.name, route: handler.route, url: url });
                 } 
             }.bind(this));
             return nodes;
@@ -469,14 +465,11 @@
             var segments = routeName.split('.').slice(0, -1);
             var match = segments.join('.') + '.';
             var nomatch = routeName + '.';
-            _.each(_.keys(this.routeHandlers), function(name) {
-                if (name.indexOf(match) === 0 && name.indexOf(nomatch) === -1) {
-                    var route = this.get(name);
-                    if (route) {
-                        var url = this.url(route, params);
-                        var active = name === routeName;
-                        nodes.push({ name: name, route: route, url: url, active: active });
-                    }
+            _.each(this.handlers, function(handler) {
+                if (handler.name && handler.name.indexOf(match) === 0 && handler.name.indexOf(nomatch) === -1) {
+                    var url = this.url(handler.route, params);
+                    var active = handler.name === routeName;
+                    nodes.push({ name: handler.name, route: handler.route, url: url, active: active });
                 } 
             }.bind(this));
             return nodes;
