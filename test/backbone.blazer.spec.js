@@ -508,6 +508,18 @@ describe('Backbone.Blazer.Router', function() {
         expect(this.router.routeHandlers['example']).to.be.instanceof(Backbone.Blazer.Route);
     });
     
+    it('should setup named routes using addRoutes - with array', function() {
+        this.router.addRoutes([{ name: 'users', path: 'users', title: 'Users' }]);
+        expect(this.router.routeHandlers['users']).to.be.instanceof(Backbone.Blazer.Route);
+        expect(this.router.routeHandlers['users'].options.title).to.equal('Users');
+    });
+    
+    it('should setup named routes using addRoutes - with object', function() {
+        this.router.addRoutes({ users: { path: 'users', title: 'Users' } });
+        expect(this.router.routeHandlers['users']).to.be.instanceof(Backbone.Blazer.Route);
+        expect(this.router.routeHandlers['users'].options.title).to.equal('Users');
+    });
+    
     it('should generate urls from routes', function() {
         expect(this.router.url('users')).to.equal('users');
         expect(this.router.url('users/:id')).to.equal('users');

@@ -99,6 +99,19 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         this.__stopped = true;
     },
     
+    addRoutes: function(routes) {
+        var isArray = _.isArray(routes);
+        _.each(routes, function(route, name) {
+            var options = _.omit(route, 'name', 'path');
+            var routeName = isArray ? route.name : (name || route.name);
+            if (_.isEmpty(routeName)) {
+                console.warn('Invalid route');
+            } else {
+                this.route(routeName, route.path || '', options);
+            }
+        }.bind(this));
+    },
+    
     route: function(routeName, route, config) {
         if (arguments.length < 3 && !_.isString(route)) {
             config = route, route = routeName;
@@ -109,9 +122,10 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         
         if (_.isObject(config) && !(config instanceof Backbone.Blazer.Route)) {
             var RouteConstructor;
-            if (_.isFunction(this.routeConstructor)) {
+            if (_.isFunction(this.routeConstructor) // plain function, not a constructor
+                && !(this.routeConstructor.prototype instanceof Backbone.Blazer.Route)) {
                 RouteConstructor = this.routeConstructor(config);
-            } else if (_.isObject(this.routeConstructor)) {
+            } else {
                 RouteConstructor = this.routeConstructor;
             }
             RouteConstructor = RouteConstructor || Backbone.Blazer.Route;
