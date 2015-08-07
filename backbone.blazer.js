@@ -80,7 +80,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         this.handlers = [];
         
         if (_.isObject(Backbone.Radio) && options.channel !== false) {
-            var channelName = options.channel || this.channelName || 'routing';
+            var channelName = options.channel || _.result(this, 'channelName') || 'routing';
             var channel = this.channel = Backbone.Radio.channel(channelName);
             this.channel.listenTo(this, 'all', function(eventName, ctx) {
                 channel.trigger.apply(channel, [eventName].concat(_.rest(arguments)));
@@ -94,6 +94,18 @@ Backbone.Blazer.Router = Backbone.Router.extend({
     
     stop: function() {
         this.__stopped = true;
+    },
+    
+    prependFilter: function(before, after) {
+        this.filters = this.filters || [];
+        var filter = Backbone.Blazer.Router.createFilter(before, after);
+        if (!_.isEmpty(filter)) this.filters.unshift(filter);
+    },
+    
+    appendFilter: function(before, after) {
+        this.filters = this.filters || [];
+        var filter = Backbone.Blazer.Router.createFilter(before, after);
+        if (!_.isEmpty(filter)) this.filters.push(filter);
     },
     
     addRoutes: function(routes) {
