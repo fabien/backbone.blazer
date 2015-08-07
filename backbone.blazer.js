@@ -31,11 +31,13 @@ _.extend(Backbone.Blazer.Route.prototype, Backbone.Events, {
         this.filters = this.filters || [];
         var filter = Backbone.Blazer.Router.createFilter(before, after);
         if (!_.isEmpty(filter)) this.filters.unshift(filter);
+        return this;
     },
     appendFilter: function(before, after) {
         this.filters = this.filters || [];
         var filter = Backbone.Blazer.Router.createFilter(before, after);
         if (!_.isEmpty(filter)) this.filters.push(filter);
+        return this;
     }
 });
 
@@ -100,12 +102,14 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         this.filters = this.filters || [];
         var filter = Backbone.Blazer.Router.createFilter(before, after);
         if (!_.isEmpty(filter)) this.filters.unshift(filter);
+        return this;
     },
     
     appendFilter: function(before, after) {
         this.filters = this.filters || [];
         var filter = Backbone.Blazer.Router.createFilter(before, after);
         if (!_.isEmpty(filter)) this.filters.push(filter);
+        return this;
     },
     
     addRoutes: function(routes) {
