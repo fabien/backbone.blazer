@@ -420,7 +420,8 @@
         },
         
         matchesRoute: function(routeName, params) {
-            return this.matchesUrl(this.getUrl(routeName, params));
+            var url = this.getUrl.apply(this, arguments);
+            return this.matchesUrl(url);
         },
         
         isAncestor: function(routeName) {
