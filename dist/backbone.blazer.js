@@ -288,6 +288,9 @@
         },
         
         getRoute: function(routeName) {
+            if (routeName === true) {
+                return this.current && this.current.route;
+            }
             var handler = this.get(routeName);
             return handler && handler.route;
         },

@@ -668,10 +668,18 @@ describe('Backbone.Blazer.Router', function() {
         
         this.router.navigateTo('index', {}, { trigger: true });
         
+        expect(this.router.getUrl(true)).to.equal('en');
+        expect(this.router.getUrl(true, 'nl')).to.equal('nl');
+        expect(this.router.getUrl(true, { lc: 'nl' })).to.equal('nl');
+        
         expect(this.router.current.url).to.equal('en');
         expect(this.router.current.route).to.equal(':lc');
         
         this.router.navigateTo('route', { lc: 'en' }, { trigger: true });
+        
+        expect(this.router.getUrl(true)).to.equal('en/route');
+        expect(this.router.getUrl(true, 'nl')).to.equal('nl/route');
+        expect(this.router.getUrl(true, { lc: 'nl' })).to.equal('nl/route');
         
         expect(this.router.current.url).to.equal('en/route');
         expect(this.router.current.route).to.equal(':lc/route');

@@ -272,6 +272,9 @@ Backbone.Blazer.Router = Backbone.Router.extend({
     },
     
     getRoute: function(routeName) {
+        if (routeName === true) {
+            return this.current && this.current.route;
+        }
         var handler = this.get(routeName);
         return handler && handler.route;
     },
