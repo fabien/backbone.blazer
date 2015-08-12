@@ -27,6 +27,13 @@ _.extend(Backbone.Blazer.Route.prototype, Backbone.Events, {
     },
     activate: function(ctx) {},
     deactivate: function(ctx) {},
+    use: function(middlewareFn, prepend) {
+        if (prepend) {
+            this.prependFilter(middlewareFn);
+        } else {
+            this.appendFilter(middlewareFn);
+        }
+    },
     prependFilter: function(before, after) {
         this.filters = this.filters || [];
         var filter = Backbone.Blazer.Router.createFilter(before, after);
@@ -96,6 +103,14 @@ Backbone.Blazer.Router = Backbone.Router.extend({
     
     stop: function() {
         this.__stopped = true;
+    },
+    
+    use: function(middlewareFn, prepend) {
+        if (prepend) {
+            this.prependFilter(middlewareFn);
+        } else {
+            this.appendFilter(middlewareFn);
+        }
     },
     
     prependFilter: function(before, after) {

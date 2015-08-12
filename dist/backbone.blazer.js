@@ -43,6 +43,13 @@
         },
         activate: function(ctx) {},
         deactivate: function(ctx) {},
+        use: function(middlewareFn, prepend) {
+            if (prepend) {
+                this.prependFilter(middlewareFn);
+            } else {
+                this.appendFilter(middlewareFn);
+            }
+        },
         prependFilter: function(before, after) {
             this.filters = this.filters || [];
             var filter = Backbone.Blazer.Router.createFilter(before, after);
@@ -112,6 +119,14 @@
         
         stop: function() {
             this.__stopped = true;
+        },
+        
+        use: function(middlewareFn, prepend) {
+            if (prepend) {
+                this.prependFilter(middlewareFn);
+            } else {
+                this.appendFilter(middlewareFn);
+            }
         },
         
         prependFilter: function(before, after) {

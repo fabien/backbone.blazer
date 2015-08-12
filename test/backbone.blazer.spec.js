@@ -290,7 +290,7 @@ describe('Backbone.Blazer.Router', function() {
     it('should use filters that have been registered on the router', function() {
         this.sinon.spy(this.testRoute, 'execute');
         
-        this.testRoute.prependFilter('loadUser');
+        this.testRoute.use('loadUser');
         
         expect(this.testRoute.filters).to.have.length(1);
         
