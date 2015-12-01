@@ -84,6 +84,9 @@ describe('Backbone.Blazer.Router', function() {
         var routerAfterExecute = this.sinon.spy();
         this.router.on('after:execute', routerAfterExecute);
 
+        var routeEvent = this.sinon.spy();
+        this.router.on('route', routeEvent);
+
         this.router.navigate('route', { trigger: true });
 
         expect(this.router.handleRoute).to.have.been.calledOnce;
@@ -93,6 +96,7 @@ describe('Backbone.Blazer.Router', function() {
 
         expect(routerBeforeExecute).to.have.been.calledOnce;
         expect(routerAfterExecute).to.have.been.calledOnce;
+        expect(routeEvent).to.have.been.calledOnce;
     });
 
     it('should process an error correctly', function() {

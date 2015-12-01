@@ -347,7 +347,7 @@ Backbone.Blazer.Router = Backbone.Router.extend({
         }
         
         function done() {
-            var name = router.current.route;
+            var name = router.current.name;
             var args = routeData.params || [];
             router.trigger.apply(router, ['route:' + name].concat(args));
             router.trigger('route', name, args);
